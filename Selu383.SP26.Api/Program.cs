@@ -39,10 +39,28 @@ if (app.Environment.IsDevelopment())
 
 app.UseHttpsRedirection();
 
-app.UseAuthorization();
+app
+	.UseRouting()
+	.UseAuthorization()
+	.UseAuthentication()
+	.UseEndpoints(x =>
+	{
+		x.MapControllers();
+	});
 
-app.MapControllers();
+app.UseStaticFiles();
 
+if (app.Environment.IsDevelopment())
+{
+	app.UseSpa(x =>
+	{
+		x.UseProxyToSpaDevelopmentServer("https://localhost:5173");
+	});
+}
+else
+{
+	app.MapFallbackToFile("/index");
+}
 app.Run();
 
 //see: https://docs.microsoft.com/en-us/aspnet/core/test/integration-tests?view=aspnetcore-8.0
