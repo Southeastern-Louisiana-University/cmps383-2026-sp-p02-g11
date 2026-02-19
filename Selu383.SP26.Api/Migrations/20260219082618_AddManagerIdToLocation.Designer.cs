@@ -2,6 +2,7 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Selu383.SP26.Api.Data;
 
@@ -10,9 +11,11 @@ using Selu383.SP26.Api.Data;
 namespace Selu383.SP26.Api.Migrations
 {
     [DbContext(typeof(DataContext))]
-    partial class DataContextModelSnapshot : ModelSnapshot
+    [Migration("20260219082618_AddManagerIdToLocation")]
+    partial class AddManagerIdToLocation
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -49,7 +52,7 @@ namespace Selu383.SP26.Api.Migrations
                     b.ToTable("Locations");
                 });
 
-            modelBuilder.Entity("Selu383.SP26.Api.Features.Users.Role", b =>
+            modelBuilder.Entity("Selu383.SP26.Api.Features.Roles.Role", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
@@ -78,29 +81,57 @@ namespace Selu383.SP26.Api.Migrations
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
-                    b.Property<int>("RoleId")
-                        .HasColumnType("int");
-
                     b.Property<string>("UserName")
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
                     b.HasKey("Id");
 
-                    b.HasIndex("RoleId");
-
                     b.ToTable("Users");
                 });
 
-            modelBuilder.Entity("Selu383.SP26.Api.Features.Users.User", b =>
+            modelBuilder.Entity("Selu383.SP26.Api.Features.Users.UserRole", b =>
                 {
-                    b.HasOne("Selu383.SP26.Api.Features.Users.Role", "Role")
-                        .WithMany()
+                    b.Property<int>("UserId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("RoleId")
+                        .HasColumnType("int");
+
+                    b.HasKey("UserId", "RoleId");
+
+                    b.HasIndex("RoleId");
+
+                    b.ToTable("UserRoles");
+                });
+
+            modelBuilder.Entity("Selu383.SP26.Api.Features.Users.UserRole", b =>
+                {
+                    b.HasOne("Selu383.SP26.Api.Features.Roles.Role", "Role")
+                        .WithMany("UserRoles")
                         .HasForeignKey("RoleId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
+                    b.HasOne("Selu383.SP26.Api.Features.Users.User", "User")
+                        .WithMany("UserRoles")
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
                     b.Navigation("Role");
+
+                    b.Navigation("User");
+                });
+
+            modelBuilder.Entity("Selu383.SP26.Api.Features.Roles.Role", b =>
+                {
+                    b.Navigation("UserRoles");
+                });
+
+            modelBuilder.Entity("Selu383.SP26.Api.Features.Users.User", b =>
+                {
+                    b.Navigation("UserRoles");
                 });
 #pragma warning restore 612, 618
         }
