@@ -53,14 +53,7 @@ public class UsersController(DataContext dataContext) : ControllerBase
         {
             Id = user.Id,
             UserName = user.UserName,
-            Roles = new List<string> { role.Name }
-        });
+            Roles = [user.Role!.Name]
+		});
     }
-}
-
-public class CreateUserDto
-{
-    public string UserName { get; set; } = string.Empty;
-    public string Password { get; set; } = string.Empty;
-    public string[] Roles { get; set; } = Array.Empty<string>();
 }

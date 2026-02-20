@@ -1,4 +1,6 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using System.Net;
+using System.Text.Json;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Selu383.SP26.Api.Data;
 using Selu383.SP26.Api.Features.Users;
@@ -17,7 +19,7 @@ public class AuthenticationController : ControllerBase
     }
 
     [HttpPost("login")]
-    public async Task<IActionResult> Login([FromBody] UserLoginDto request)
+    public async Task<IActionResult> Login([FromBody] LoginDto request)
     {
         if (string.IsNullOrEmpty(request.UserName) || string.IsNullOrEmpty(request.Password))
             return BadRequest("Username and password are required.");
@@ -30,7 +32,22 @@ public class AuthenticationController : ControllerBase
             return BadRequest("Invalid username or password.");
 
         HttpContext.Session.SetInt32("UserId", user.Id);
-        return Ok(new UserDto { Id = user.Id, UserName = user.UserName, Roles = new List<string> { user.Role!.Name } });
+        var userDto = new UserDto
+        {
+            Id = user.Id,
+            UserName = user.UserName,
+            Roles = [user.Role!.Name]
+        };
+        // turn our userDto into json
+		var cookieJson = JsonSerializer.Serialize(userDto);
+		Response.Cookies.Append("User", cookieJson, new CookieOptions
+		{
+			Expires = DateTimeOffset.UtcNow.AddHours(1),
+			HttpOnly = false, 
+			IsEssential = true
+		});
+
+		return Ok(userDto);
     }
 
     [HttpPost("logout")]
@@ -57,12 +74,6 @@ public class AuthenticationController : ControllerBase
             .FirstOrDefaultAsync(u => u.Id == userId);
 
         if (user == null) return Unauthorized();
-        return Ok(new UserDto { Id = user.Id, UserName = user.UserName, Roles = new List<string> { user.Role!.Name } });
+        return Ok(new UserDto { Id = user.Id, UserName = user.UserName, Roles = [user.Role!.Name] });
     }
-}
-
-public class UserLoginDto
-{
-    public string UserName { get; set; } = string.Empty;
-    public string Password { get; set; } = string.Empty;
 }

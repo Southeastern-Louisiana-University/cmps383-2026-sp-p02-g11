@@ -11,5 +11,5 @@ public class CreateUserDto
     public string Password { get; set; } = string.Empty;
 
     [Required]
-    public List<string> Roles { get; set; } = new();
+	public required string[] Roles { get; set; }
 }
