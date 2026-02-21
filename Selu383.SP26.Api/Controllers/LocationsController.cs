@@ -1,15 +1,16 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Selu383.SP26.Api.Data;
 using Selu383.SP26.Api.Features.Locations;
+using Selu383.SP26.Api.Features.Users;
+using System.Security.Claims;
 
 namespace Selu383.SP26.Api.Controllers;
 
 [Route("api/locations")]
 [ApiController]
-public class LocationsController(
-    DataContext dataContext
-    ) : ControllerBase
+public class LocationsController(DataContext dataContext) : ControllerBase
 {
     [HttpGet]
     public IQueryable<LocationDto> GetAll()
@@ -21,6 +22,7 @@ public class LocationsController(
                 Name = x.Name,
                 Address = x.Address,
                 TableCount = x.TableCount,
+                ManagerId = x.ManagerId // Updated
             });
     }
 
@@ -41,13 +43,15 @@ public class LocationsController(
             Name = result.Name,
             Address = result.Address,
             TableCount = result.TableCount,
+            ManagerId = result.ManagerId // Updated
         });
     }
 
     [HttpPost]
+    [Authorize(Roles = "Admin")] // Only Admins can create
     public ActionResult<LocationDto> Create(LocationDto dto)
     {
-        if (dto.TableCount < 1)
+        if (dto.TableCount < 1 || string.IsNullOrWhiteSpace(dto.Name) || dto.Name.Length > 120)
         {
             return BadRequest();
         }
@@ -57,6 +61,7 @@ public class LocationsController(
             Name = dto.Name,
             Address = dto.Address,
             TableCount = dto.TableCount,
+            ManagerId = dto.ManagerId // Updated
         };
 
         dataContext.Set<Location>().Add(location);
@@ -68,19 +73,34 @@ public class LocationsController(
     }
 
     [HttpPut("{id}")]
+    [Authorize] // Must be logged in
     public ActionResult<LocationDto> Update(int id, LocationDto dto)
     {
-        if (dto.TableCount < 1)
+        var location = dataContext.Set<Location>().FirstOrDefault(x => x.Id == id);
+        if (location == null)
+        {
+            return NotFound();
+        }
+
+        // Authorization Logic: Admin or the assigned Manager
+        var userId = int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
+        var isAdmin = User.IsInRole("Admin");
+        var isManager = location.ManagerId == userId;
+
+        if (!isAdmin && !isManager)
+        {
+            return Forbidden(); // Helper method or return StatusCode(403)
+        }
+
+        if (dto.TableCount < 1 || string.IsNullOrWhiteSpace(dto.Name) || dto.Name.Length > 120)
         {
             return BadRequest();
         }
 
-        var location = dataContext.Set<Location>()
-            .FirstOrDefault(x => x.Id == id);
-
-        if (location == null)
+        // Only admins can change the ManagerId
+        if (isAdmin)
         {
-            return NotFound();
+            location.ManagerId = dto.ManagerId;
         }
 
         location.Name = dto.Name;
@@ -90,11 +110,13 @@ public class LocationsController(
         dataContext.SaveChanges();
 
         dto.Id = location.Id;
+        dto.ManagerId = location.ManagerId;
 
         return Ok(dto);
     }
 
     [HttpDelete("{id}")]
+    [Authorize(Roles = "Admin")] // Only Admins can delete
     public ActionResult Delete(int id)
     {
         var location = dataContext.Set<Location>()
@@ -110,4 +132,6 @@ public class LocationsController(
 
         return Ok();
     }
+
+    private ActionResult Forbidden() => StatusCode(403);
 }
