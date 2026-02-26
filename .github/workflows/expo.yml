@@ -1,7 +1,7 @@
 on:
   push:
     branches:
-      - dev # Change this when merging with main 
+      - main 
 jobs:
   update:
     runs-on: ubuntu-latest
